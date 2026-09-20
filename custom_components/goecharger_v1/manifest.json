@@ -1,11 +1,14 @@
 {
   "domain": "goecharger_v1",
   "name": "go-eCharger (API v1)",
-  "codeowners": [],
+  "codeowners": [
+    "@mikrohard"
+  ],
   "config_flow": true,
-  "documentation": "https://github.com/goecharger/go-eCharger-API-v1",
+  "documentation": "https://github.com/mikrohard/hass-goecharger-v1",
   "integration_type": "device",
   "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/mikrohard/hass-goecharger-v1/issues",
   "requirements": [],
   "version": "1.0.0"
 }
