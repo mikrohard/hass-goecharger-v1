@@ -1,0 +1,155 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to go-eCharger",
+        "description": "Enter the IP address or hostname of the charger. The local HTTP API must be enabled in the go-eCharger app.",
+        "data": {
+          "host": "IP address / hostname",
+          "scan_interval": "Refresh interval"
+        },
+        "data_description": {
+          "host": "For example 192.168.1.50",
+          "scan_interval": "How often the charger status is polled, in seconds (go-e recommends at least 5)."
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure go-eCharger",
+        "description": "Change the address of the charger or the refresh interval.",
+        "data": {
+          "host": "IP address / hostname",
+          "scan_interval": "Refresh interval"
+        },
+        "data_description": {
+          "host": "For example 192.168.1.50",
+          "scan_interval": "How often the charger status is polled, in seconds (go-e recommends at least 5)."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not connect to the charger. Check the address and make sure the HTTP API is enabled in the go-eCharger app.",
+      "invalid_host": "Please enter an IP address or hostname.",
+      "wrong_device": "The charger at this address has a different serial number than the configured one."
+    },
+    "abort": {
+      "already_configured": "This charger is already configured.",
+      "reconfigure_successful": "Reconfiguration successful."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "go-eCharger settings",
+        "description": "Change the address of the charger or the refresh interval. The integration reloads after saving.",
+        "data": {
+          "host": "IP address / hostname",
+          "scan_interval": "Refresh interval"
+        },
+        "data_description": {
+          "host": "For example 192.168.1.50",
+          "scan_interval": "How often the charger status is polled, in seconds (go-e recommends at least 5)."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not connect to the charger. Check the address and make sure the HTTP API is enabled in the go-eCharger app.",
+      "invalid_host": "Please enter an IP address or hostname.",
+      "wrong_device": "The charger at this address has a different serial number than the configured one."
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "connection": { "name": "Connection" },
+      "vehicle_connected": { "name": "Vehicle connected" },
+      "charging": { "name": "Charging" },
+      "charging_allowed": { "name": "Charging allowed" },
+      "adapter_in": { "name": "16 A adapter" }
+    },
+    "select": {
+      "max_current": { "name": "Max current" }
+    },
+    "switch": {
+      "allow_charging": { "name": "Allow charging" }
+    },
+    "sensor": {
+      "car_status": {
+        "name": "Car status",
+        "state": {
+          "ready": "Ready, no vehicle",
+          "charging": "Charging",
+          "waiting_for_vehicle": "Waiting for vehicle",
+          "charge_finished": "Charge finished"
+        }
+      },
+      "charging_current": { "name": "Stored charging current" },
+      "reported_max_current": { "name": "Reported max current" },
+      "error": {
+        "name": "Error",
+        "state": {
+          "none": "No error",
+          "rccb": "Residual current device",
+          "phase": "Phase disturbance",
+          "no_ground": "No ground",
+          "internal": "Internal error"
+        }
+      },
+      "access_state": {
+        "name": "Access control",
+        "state": {
+          "open": "Open",
+          "rfid_app": "RFID / app",
+          "electricity_price": "Electricity price / automatic"
+        }
+      },
+      "stop_state": {
+        "name": "Automatic stop",
+        "state": {
+          "deactivated": "Deactivated",
+          "kwh_limit": "Stop after kWh"
+        }
+      },
+      "unlock_state": {
+        "name": "Cable lock",
+        "state": {
+          "locked_while_connected": "Locked while vehicle connected",
+          "unlock_after_charging": "Unlock after charging",
+          "always_locked": "Always locked"
+        }
+      },
+      "cable_current_limit": { "name": "Cable current limit" },
+      "absolute_max_current": { "name": "Absolute max current" },
+      "phases_available": { "name": "Phases available" },
+      "phases_active": { "name": "Phases active" },
+      "temperature": { "name": "Temperature" },
+      "temperature_1": { "name": "Temperature 1" },
+      "temperature_2": { "name": "Temperature 2" },
+      "temperature_3": { "name": "Temperature 3" },
+      "temperature_4": { "name": "Temperature 4" },
+      "temperature_5": { "name": "Temperature 5" },
+      "temperature_6": { "name": "Temperature 6" },
+      "session_energy": { "name": "Session energy" },
+      "total_energy": { "name": "Total energy" },
+      "energy_limit": { "name": "Energy limit" },
+      "unlocked_by": { "name": "Unlocked by card" },
+      "voltage_l1": { "name": "Voltage L1" },
+      "voltage_l2": { "name": "Voltage L2" },
+      "voltage_l3": { "name": "Voltage L3" },
+      "voltage_n": { "name": "Voltage N" },
+      "current_l1": { "name": "Current L1" },
+      "current_l2": { "name": "Current L2" },
+      "current_l3": { "name": "Current L3" },
+      "power_l1": { "name": "Power L1" },
+      "power_l2": { "name": "Power L2" },
+      "power_l3": { "name": "Power L3" },
+      "power_n": { "name": "Power N" },
+      "power_total": { "name": "Power" },
+      "power_factor_l1": { "name": "Power factor L1" },
+      "power_factor_l2": { "name": "Power factor L2" },
+      "power_factor_l3": { "name": "Power factor L3" },
+      "firmware_version": { "name": "Firmware version" },
+      "reboot_counter": { "name": "Reboot counter" },
+      "uptime": { "name": "Uptime" },
+      "load_balancing_current": { "name": "Load balancing current" }
+    }
+  }
+}
