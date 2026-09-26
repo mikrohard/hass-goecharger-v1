@@ -11,6 +11,7 @@ from pytest_homeassistant_custom_component.common import (
     async_fire_time_changed,
 )
 
+from homeassistant.components.button import DOMAIN as BUTTON_DOMAIN, SERVICE_PRESS
 from homeassistant.components.select import (
     ATTR_OPTION,
     DOMAIN as SELECT_DOMAIN,
@@ -363,6 +364,113 @@ async def test_reboot_falls_back_to_flash_value(
     assert hass.states.get(SELECT).state == "16"
     assert hass.states.get(f"sensor.{PREFIX}_reboot_counter").state == "252"
     assert charger.commands() == []
+
+
+async def test_reboot_button(
+    hass: HomeAssistant,
+    charger: FakeCharger,
+    setup_entry: MockConfigEntry,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """The reboot button sends rst=1 and tolerates the dropped connection."""
+    await _select(hass, "10")
+    assert hass.states.get(SELECT).attributes["pending_value"] == 10
+
+    await hass.services.async_call(
+        BUTTON_DOMAIN,
+        SERVICE_PRESS,
+        {ATTR_ENTITY_ID: f"button.{PREFIX}_reboot"},
+        blocking=True,
+    )
+    # aiohttp may transparently retry the GET once when the pooled connection
+    # is dropped, so allow more than one rst=1 but nothing else.
+    assert "rst=1" in charger.commands()
+    assert [c for c in charger.commands() if c != "rst=1"] == ["amx=10"]
+    # Pending amx write dropped, no workaround attempted later.
+    assert hass.states.get(SELECT).attributes["pending_value"] is None
+
+    await _poll(hass, freezer)
+    assert hass.states.get(f"sensor.{PREFIX}_reboot_counter").state != "251"
+    assert hass.states.get(SELECT).state == "16"
+    await _poll(hass, freezer, seconds=60)
+    assert [c for c in charger.commands() if c != "rst=1"] == ["amx=10"]
+
+
+async def test_auto_reboot_on_no_ground_once(
+    hass: HomeAssistant,
+    charger: FakeCharger,
+    setup_entry: MockConfigEntry,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """No ground triggers one reboot; re-armed only after a No error status."""
+    button = f"button.{PREFIX}_reboot"
+    assert hass.states.get(button).attributes["auto_reboot_armed"] is True
+    charger.reboot_mode = "reply"  # no dropped connection, so no aiohttp retry
+
+    charger.status["err"] = "8"
+    await _poll(hass, freezer)
+    assert charger.reboot_calls == 1
+    assert hass.states.get(f"sensor.{PREFIX}_error").state == "no_ground"
+    attrs = hass.states.get(button).attributes
+    assert attrs["auto_reboot_armed"] is False
+    assert attrs["last_auto_reboot"] is not None
+
+    # Error persists after the reboot: no further reboots.
+    await _poll(hass, freezer)
+    await _poll(hass, freezer)
+    assert charger.reboot_calls == 1
+
+    # A different error does not re-arm either.
+    charger.status["err"] = "1"
+    await _poll(hass, freezer)
+    charger.status["err"] = "8"
+    await _poll(hass, freezer)
+    assert charger.reboot_calls == 1
+
+    # No error seen -> re-armed -> next No ground reboots again.
+    charger.status["err"] = "0"
+    await _poll(hass, freezer)
+    assert hass.states.get(button).attributes["auto_reboot_armed"] is True
+    charger.status["err"] = "8"
+    await _poll(hass, freezer)
+    assert charger.reboot_calls == 2
+
+
+async def test_auto_reboot_disabled(
+    hass: HomeAssistant, charger: FakeCharger, freezer: FrozenDateTimeFactory
+) -> None:
+    """With the option off the error is only logged."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id=SERIAL,
+        data={
+            CONF_HOST: charger.host,
+            CONF_SCAN_INTERVAL: 5,
+            "auto_reboot_no_ground": False,
+        },
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    charger.status["err"] = "8"
+    await _poll(hass, freezer)
+    assert charger.reboot_calls == 0
+    assert hass.states.get(f"button.{PREFIX}_reboot").attributes["auto_reboot_on_no_ground"] is False
+
+
+async def test_reboot_button_http_error(
+    hass: HomeAssistant, charger: FakeCharger, setup_entry: MockConfigEntry
+) -> None:
+    """An HTTP error reply to rst=1 is reported to the user."""
+    charger.reboot_mode = "error"
+    with pytest.raises(HomeAssistantError, match="rejected the reboot"):
+        await hass.services.async_call(
+            BUTTON_DOMAIN,
+            SERVICE_PRESS,
+            {ATTR_ENTITY_ID: f"button.{PREFIX}_reboot"},
+            blocking=True,
+        )
 
 
 async def test_unload_entry(hass: HomeAssistant, setup_entry: MockConfigEntry) -> None:

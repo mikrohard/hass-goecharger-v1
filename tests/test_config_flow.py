@@ -30,7 +30,11 @@ async def test_user_flow_creates_entry(hass: HomeAssistant, charger: FakeCharger
 
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["title"] == f"go-eCharger {SERIAL}"
-    assert result["data"] == {CONF_HOST: charger.host, CONF_SCAN_INTERVAL: 7}
+    assert result["data"] == {
+        CONF_HOST: charger.host,
+        CONF_SCAN_INTERVAL: 7,
+        "auto_reboot_no_ground": True,
+    }
     assert result["result"].unique_id == SERIAL
 
 
@@ -101,11 +105,21 @@ async def test_options_flow(
     assert result["step_id"] == "init"
 
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"], {CONF_HOST: charger.host, CONF_SCAN_INTERVAL: 15}
+        result["flow_id"],
+        {
+            CONF_HOST: charger.host,
+            CONF_SCAN_INTERVAL: 15,
+            "auto_reboot_no_ground": False,
+        },
     )
     await hass.async_block_till_done()
 
     assert result["type"] is FlowResultType.CREATE_ENTRY
-    assert setup_entry.data == {CONF_HOST: charger.host, CONF_SCAN_INTERVAL: 15}
+    assert setup_entry.data == {
+        CONF_HOST: charger.host,
+        CONF_SCAN_INTERVAL: 15,
+        "auto_reboot_no_ground": False,
+    }
+    assert setup_entry.runtime_data.auto_reboot_no_ground is False
     assert setup_entry.state is config_entries.ConfigEntryState.LOADED
     assert setup_entry.runtime_data.update_interval.total_seconds() == 15

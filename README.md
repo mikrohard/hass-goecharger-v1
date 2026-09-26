@@ -21,6 +21,7 @@ Assistant can currently talk to the charger.
 - Retry with back-off on every request, last values kept, connection status
   entity with `last_success`, `consecutive_failures` and `last_error`
   attributes.
+- **Reboot** button using the undocumented `rst=1` command.
 - Download diagnostics from the device page.
 
 ## Installation
@@ -44,6 +45,7 @@ Settings → Devices & services → *Add integration* → **go-eCharger (API v1)
 | --- | --- |
 | IP address / hostname | Local address of the charger. The HTTP API must be enabled in the go-eCharger app. |
 | Refresh interval | Poll interval in seconds. Default 10, minimum 5 (as recommended by go-e). |
+| Reboot once on "No ground" error | On by default. See *Automatic reboot on "No ground"* below. |
 
 Both values can be changed afterwards via the *Configure* button of the
 integration entry or via *Reconfigure* in the entry menu. The integration
@@ -59,6 +61,7 @@ IP address keeps all entities and their history.
 | Entity | Key | Notes |
 | --- | --- | --- |
 | Allow charging (switch) | `alw` | Verified against the charger's response. |
+| Reboot (button, diagnostic) | `rst=1` | Undocumented command; the charger restarts without answering. |
 | Max current (select, 6 A … `ama`) | `amx` | Shows the charger-reported `amx`, or the requested value while a write is pending. |
 
 ### Sensors
@@ -104,6 +107,24 @@ object, so a firmware that lacks a field simply does not get that entity.
   sensor back *on*.
 - Setting the switch or number while the charger is unreachable raises an error
   in the UI / automation trace; nothing is silently swallowed.
+
+## Automatic reboot on "No ground"
+
+The charger sometimes reports the "No ground" error (`err=8`) after months of
+uptime although nothing is wrong with the installation, and only a reboot
+clears it. With the option enabled (default) the integration handles this:
+
+1. When a status reports `err=8` while the rule is armed, the charger is
+   rebooted once (`rst=1`) and the rule is disarmed. A warning is logged.
+2. The rule is re-armed only after a status with "No error" (`err=0`) has been
+   seen. If the error persists after the reboot, or comes back without a
+   "No error" in between, nothing further happens.
+3. The rule starts armed when the integration loads. If the error is already
+   present at that point, a single reboot is attempted.
+
+The **Reboot** button exposes `auto_reboot_on_no_ground`, `auto_reboot_armed`
+and `last_auto_reboot` attributes. Other error codes (RCCB, phase, internal)
+never trigger a reboot.
 
 ## Firmware 0.42.0 `amx` workaround
 

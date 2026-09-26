@@ -13,7 +13,14 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from homeassistant.util import dt as dt_util
 
 from .api import GoeChargerApi, GoeChargerError
-from .const import AMX_CONFIRM_TIMEOUT, DOMAIN, LOGGER, MIN_CURRENT
+from .const import (
+    AMX_CONFIRM_TIMEOUT,
+    DOMAIN,
+    ERR_NO_GROUND,
+    ERR_NONE,
+    LOGGER,
+    MIN_CURRENT,
+)
 from .util import StatusData, get_int
 
 
@@ -34,6 +41,8 @@ class GoeChargerCoordinator(DataUpdateCoordinator[StatusData]):
         entry: ConfigEntry,
         api: GoeChargerApi,
         scan_interval: int,
+        *,
+        auto_reboot_no_ground: bool = True,
     ) -> None:
         """Initialise the coordinator."""
         super().__init__(
@@ -61,6 +70,13 @@ class GoeChargerCoordinator(DataUpdateCoordinator[StatusData]):
         self._cancel_amx_check: callback | None = None
         # Reboot counter seen in the last status, used to detect reboots.
         self._last_reboot_counter: int | None = None
+
+        # Automatic reboot on the "No ground" error. The charger sometimes
+        # reports it after months of uptime and only a reboot clears it. The
+        # rule fires once and is re-armed only after a "No error" status.
+        self.auto_reboot_no_ground = auto_reboot_no_ground
+        self.auto_reboot_armed: bool = True
+        self.last_auto_reboot: datetime | None = None
 
     @property
     def serial(self) -> str:
@@ -122,6 +138,7 @@ class GoeChargerCoordinator(DataUpdateCoordinator[StatusData]):
         """Run the checks that look at every fresh status object."""
         self._check_reboot(status)
         self._check_pending_max_current(status)
+        self._check_no_ground(status)
 
     def _check_reboot(self, status: StatusData) -> None:
         """Detect a charger reboot from the reboot counter."""
@@ -142,6 +159,49 @@ class GoeChargerCoordinator(DataUpdateCoordinator[StatusData]):
         )
         # After a reboot the charger charges with the flash value again.
         self.requested_max_current = get_int(status, "amp")
+
+    def _check_no_ground(self, status: StatusData) -> None:
+        """Reboot once on the "No ground" error, re-arm after "No error"."""
+        err = get_int(status, "err")
+        if err is None:
+            return
+        if err == ERR_NONE:
+            if not self.auto_reboot_armed:
+                LOGGER.info(
+                    "go-eCharger at %s reports no error again; automatic reboot "
+                    "on \"No ground\" re-armed",
+                    self.api.host,
+                )
+                self.auto_reboot_armed = True
+            return
+        if err != ERR_NO_GROUND or not self.auto_reboot_armed:
+            return
+        # Disarm even when the option is off, so enabling it later does not
+        # reboot on an error that has been present all along.
+        self.auto_reboot_armed = False
+        if not self.auto_reboot_no_ground:
+            LOGGER.warning(
+                "go-eCharger at %s reports \"No ground\" (err=8); automatic reboot "
+                "is disabled in the integration options",
+                self.api.host,
+            )
+            return
+        LOGGER.warning(
+            "go-eCharger at %s reports \"No ground\" (err=8); rebooting the charger "
+            "once. It will not be rebooted again until a \"No error\" status was seen",
+            self.api.host,
+        )
+        self.last_auto_reboot = dt_util.utcnow()
+        self.config_entry.async_create_background_task(
+            self.hass, self._async_auto_reboot(), name=f"{DOMAIN} auto reboot"
+        )
+
+    async def _async_auto_reboot(self) -> None:
+        """Background task for the automatic reboot."""
+        try:
+            await self.async_reboot()
+        except HomeAssistantError as err:
+            LOGGER.error("Automatic reboot of go-eCharger failed: %s", err)
 
     # -------------------------------------------------------------- commands
 
@@ -174,6 +234,21 @@ class GoeChargerCoordinator(DataUpdateCoordinator[StatusData]):
         """Allow or forbid charging (alw)."""
         value = 1 if allow else 0
         await self.async_send_command("alw", value, expected=value)
+
+    async def async_reboot(self) -> None:
+        """Reboot the charger (rst=1)."""
+        LOGGER.info("Rebooting go-eCharger at %s", self.api.host)
+        # amx falls back to the flash value after the reboot; drop any
+        # pending write instead of running the workaround against it.
+        self._clear_pending()
+        self.amx_last_error = None
+        try:
+            await self.api.reboot()
+        except GoeChargerError as err:
+            raise HomeAssistantError(
+                f"Failed to reboot go-eCharger at {self.api.host}: {err}"
+            ) from err
+        self.async_update_listeners()
 
     # ------------------------------------------------------------ max current
 

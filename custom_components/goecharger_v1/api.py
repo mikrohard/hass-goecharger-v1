@@ -77,6 +77,31 @@ class GoeChargerApi:
         url = URL(f"{self.base_url}/mqtt?payload={key}={value}", encoded=True)
         return await self._request(url)
 
+    async def reboot(self) -> None:
+        """Reboot the charger with the undocumented `rst=1` command.
+
+        The charger restarts immediately and usually does not answer, so a
+        single attempt with a short timeout is made and a missing response is
+        not treated as an error. Only an HTTP error status is reported.
+        """
+        url = URL(f"{self.base_url}/mqtt?payload=rst=1", encoded=True)
+        async with self._lock:
+            try:
+                async with self._session.get(
+                    url, timeout=aiohttp.ClientTimeout(total=5)
+                ) as resp:
+                    resp.raise_for_status()
+            except aiohttp.ClientResponseError as err:
+                raise GoeChargerConnectionError(
+                    f"Charger at {self.host} rejected the reboot command: {err}"
+                ) from err
+            except (aiohttp.ClientError, asyncio.TimeoutError, OSError) as err:
+                LOGGER.debug(
+                    "No response to reboot command from %s (expected): %s",
+                    self.host,
+                    _describe(err),
+                )
+
     async def _request(self, url: URL) -> StatusData:
         """Perform a GET with retries and return the parsed status object."""
         last_err: Exception | None = None

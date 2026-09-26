@@ -6,11 +6,13 @@
         "description": "Enter the IP address or hostname of the charger. The local HTTP API must be enabled in the go-eCharger app.",
         "data": {
           "host": "IP address / hostname",
-          "scan_interval": "Refresh interval"
+          "scan_interval": "Refresh interval",
+          "auto_reboot_no_ground": "Reboot once on \"No ground\" error"
         },
         "data_description": {
           "host": "For example 192.168.1.50",
-          "scan_interval": "How often the charger status is polled, in seconds (go-e recommends at least 5)."
+          "scan_interval": "How often the charger status is polled, in seconds (go-e recommends at least 5).",
+          "auto_reboot_no_ground": "The charger sometimes reports a spurious \"No ground\" error after months of uptime that only a reboot clears. When enabled, the charger is rebooted once when the error appears, and not again until a \"No error\" status was seen."
         }
       },
       "reconfigure": {
@@ -18,11 +20,13 @@
         "description": "Change the address of the charger or the refresh interval.",
         "data": {
           "host": "IP address / hostname",
-          "scan_interval": "Refresh interval"
+          "scan_interval": "Refresh interval",
+          "auto_reboot_no_ground": "Reboot once on \"No ground\" error"
         },
         "data_description": {
           "host": "For example 192.168.1.50",
-          "scan_interval": "How often the charger status is polled, in seconds (go-e recommends at least 5)."
+          "scan_interval": "How often the charger status is polled, in seconds (go-e recommends at least 5).",
+          "auto_reboot_no_ground": "The charger sometimes reports a spurious \"No ground\" error after months of uptime that only a reboot clears. When enabled, the charger is rebooted once when the error appears, and not again until a \"No error\" status was seen."
         }
       }
     },
@@ -43,11 +47,13 @@
         "description": "Change the address of the charger or the refresh interval. The integration reloads after saving.",
         "data": {
           "host": "IP address / hostname",
-          "scan_interval": "Refresh interval"
+          "scan_interval": "Refresh interval",
+          "auto_reboot_no_ground": "Reboot once on \"No ground\" error"
         },
         "data_description": {
           "host": "For example 192.168.1.50",
-          "scan_interval": "How often the charger status is polled, in seconds (go-e recommends at least 5)."
+          "scan_interval": "How often the charger status is polled, in seconds (go-e recommends at least 5).",
+          "auto_reboot_no_ground": "The charger sometimes reports a spurious \"No ground\" error after months of uptime that only a reboot clears. When enabled, the charger is rebooted once when the error appears, and not again until a \"No error\" status was seen."
         }
       }
     },
@@ -64,6 +70,9 @@
       "charging": { "name": "Charging" },
       "charging_allowed": { "name": "Charging allowed" },
       "adapter_in": { "name": "16 A adapter" }
+    },
+    "button": {
+      "reboot": { "name": "Reboot" }
     },
     "select": {
       "max_current": { "name": "Max current" }

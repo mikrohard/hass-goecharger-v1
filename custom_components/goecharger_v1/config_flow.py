@@ -17,6 +17,7 @@ from homeassistant.const import CONF_HOST, CONF_SCAN_INTERVAL
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
+    BooleanSelector,
     NumberSelector,
     NumberSelectorConfig,
     NumberSelectorMode,
@@ -25,6 +26,8 @@ from homeassistant.helpers.selector import (
 
 from .api import GoeChargerApi, GoeChargerError, normalize_host
 from .const import (
+    CONF_AUTO_REBOOT_NO_GROUND,
+    DEFAULT_AUTO_REBOOT_NO_GROUND,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
     LOGGER,
@@ -55,6 +58,12 @@ def _build_schema(defaults: Mapping[str, Any]) -> vol.Schema:
                 vol.Coerce(int),
                 vol.Range(min=MIN_SCAN_INTERVAL, max=MAX_SCAN_INTERVAL),
             ),
+            vol.Required(
+                CONF_AUTO_REBOOT_NO_GROUND,
+                default=defaults.get(
+                    CONF_AUTO_REBOOT_NO_GROUND, DEFAULT_AUTO_REBOOT_NO_GROUND
+                ),
+            ): BooleanSelector(),
         }
     )
 
@@ -70,6 +79,9 @@ def _clean_input(user_input: Mapping[str, Any]) -> dict[str, Any]:
     return {
         CONF_HOST: normalize_host(user_input[CONF_HOST]),
         CONF_SCAN_INTERVAL: int(user_input[CONF_SCAN_INTERVAL]),
+        CONF_AUTO_REBOOT_NO_GROUND: bool(
+            user_input.get(CONF_AUTO_REBOOT_NO_GROUND, DEFAULT_AUTO_REBOOT_NO_GROUND)
+        ),
     }
 
 

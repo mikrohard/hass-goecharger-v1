@@ -34,6 +34,9 @@ async def async_get_config_entry_diagnostics(
             "pending_since": coordinator.pending_since,
             "amx_workaround_applied": coordinator.amx_workaround_applied,
             "amx_last_error": coordinator.amx_last_error,
+            "auto_reboot_no_ground": coordinator.auto_reboot_no_ground,
+            "auto_reboot_armed": coordinator.auto_reboot_armed,
+            "last_auto_reboot": coordinator.last_auto_reboot,
         },
         "status": async_redact_data(coordinator.data or {}, TO_REDACT),
     }

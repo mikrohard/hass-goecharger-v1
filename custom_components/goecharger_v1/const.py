@@ -12,6 +12,7 @@ LOGGER = logging.getLogger(__package__)
 
 PLATFORMS: Final = [
     Platform.BINARY_SENSOR,
+    Platform.BUTTON,
     Platform.SELECT,
     Platform.SENSOR,
     Platform.SWITCH,
@@ -19,6 +20,13 @@ PLATFORMS: Final = [
 
 MANUFACTURER: Final = "go-e"
 MODEL: Final = "go-eCharger (API v1)"
+
+# Config entry option: reboot the charger once when it reports the
+# "No ground" error (err=8), re-armed after a "No error" status.
+CONF_AUTO_REBOOT_NO_GROUND: Final = "auto_reboot_no_ground"
+DEFAULT_AUTO_REBOOT_NO_GROUND: Final = True
+ERR_NONE: Final = 0
+ERR_NO_GROUND: Final = 8
 
 # Polling. The API documentation recommends at least a 5 second delay.
 DEFAULT_SCAN_INTERVAL: Final = 10

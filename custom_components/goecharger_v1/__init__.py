@@ -7,7 +7,12 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import GoeChargerApi
-from .const import DEFAULT_SCAN_INTERVAL, PLATFORMS
+from .const import (
+    CONF_AUTO_REBOOT_NO_GROUND,
+    DEFAULT_AUTO_REBOOT_NO_GROUND,
+    DEFAULT_SCAN_INTERVAL,
+    PLATFORMS,
+)
 from .coordinator import GoeChargerConfigEntry, GoeChargerCoordinator
 
 
@@ -19,6 +24,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: GoeChargerConfigEntry) -
         entry,
         api,
         int(entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)),
+        auto_reboot_no_ground=bool(
+            entry.data.get(CONF_AUTO_REBOOT_NO_GROUND, DEFAULT_AUTO_REBOOT_NO_GROUND)
+        ),
     )
     # Raises ConfigEntryNotReady if the charger cannot be reached at all,
     # which makes Home Assistant retry the setup in the background.

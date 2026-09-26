@@ -72,6 +72,10 @@ class FakeCharger:
         # value and the next /status request the new one.
         self.report_amx = True
         self._amx_to_report: str | None = None
+        # How rst=1 is answered: "drop" the connection like the real charger,
+        # "reply" with the status object, or "error" with HTTP 503.
+        self.reboot_mode = "drop"
+        self.reboot_calls = 0
         self.host = ""
 
     def _maybe_fail(self) -> web.Response | None:
@@ -99,6 +103,17 @@ class FakeCharger:
         assert raw.startswith("payload="), raw
         payload = raw[len("payload=") :]
         key, _, value = payload.partition("=")
+        if key == "rst":
+            self.reboot_calls += 1
+            self.reboot()
+            if self.reboot_mode == "error":
+                raise web.HTTPServiceUnavailable()
+            if self.reboot_mode == "drop":
+                # The real charger restarts without answering: drop the
+                # connection (aiohttp may then transparently retry once).
+                assert request.transport is not None
+                request.transport.close()
+                return web.Response()
         self.apply(key, value)
         return web.Response(text=json.dumps(self.status), content_type="text/html")
 
